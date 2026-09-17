@@ -1,37 +1,10 @@
-from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy import Column, Integer, String
-from fastapi import Depends
 from sqlalchemy.orm import Session
+from fastapi import Depends, HTTPException
 from werkzeug.security import generate_password_hash, check_password_hash
-
-app = FastAPI()
-
-engine = create_engine("sqlite:///fastapi_users.db")
-SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
-
-class User(Base):
-    __tablename__ = "users"
-    id = Column(Integer,primary_key=True)
-    username = Column(String,unique=True)
-    password = Column(String)
-    
-Base.metadata.create_all(bind=engine)
-
-
-class LoginData(BaseModel):
-    username: str
-    password: str
-    
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+from .config import get_db
+from .models import User
+from .schemas import LoginData
+from . import app
 
 @app.get("/")
 def say_hello():
@@ -45,7 +18,7 @@ def greet_user(name: str):
 def age_user(age:int):
     age = 100 - age
     return {"message":f"You will turn 100 in {age} years!"}
-    
+
 @app.post("/login")
 def login(data: LoginData, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.username).first()
